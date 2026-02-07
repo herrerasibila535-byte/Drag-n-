@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Dragon Ball · Archivo Vivo del Multiverso</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+:root{
+ --bg:#05050b;
+ --grid:rgba(255,255,255,.035);
+ --gold:#ffd166;
+ --red:#ff2d2d;
+ --blue:#7cf6ff;
+ --ink:#eaeaff;
+}
+
+*{box-sizing:border-box}
+
+body{
+ margin:0;
+ font-family:system-ui,-apple-system,Segoe UI;
+ color:var(--ink);
+ background:
+  linear-gradient(var(--grid) 1px, transparent 1px),
+  linear-gradient(90deg,var(--grid) 1px, transparent 1px),
+  var(--bg);
+ background-size:32px 32px;
+ overflow-x:hidden;
+}
+
+header{padding:clamp(1.5rem,4vw,3rem)}
+.title{
+ font-size:clamp(2.4rem,9vw,3.8rem);
+ font-weight:900;
+ letter-spacing:.18em;
+ color:var(--gold);
+ text-shadow:3px 3px 0 var(--red);
+}
+.subtitle{
+ margin-top:1rem;
+ border-left:4px solid var(--gold);
+ padding-left:1rem;
+ opacity:.85;
+}
+
+.searchBox{padding:1rem}
+.searchBox input,select{
+ width:100%;
+ padding:.7rem;
+ margin-bottom:.6rem;
+ border-radius:14px;
+ background:#040515;
+ border:1px solid #222;
+ color:#fff;
+}
+
+.section{padding:1.2rem}
+.section h3{
+ font-size:.75rem;
+ letter-spacing:.3em;
+ opacity:.7;
+ margin-bottom:1rem;
+}
+
+.scrollRow{
+ display:flex;
+ gap:1rem;
+ overflow-x:auto;
+ scroll-snap-type:x mandatory;
+}
+
+.mediaCard{
+ min-width:240px;
+ height:140px;
+ border-radius:16px;
+ overflow:hidden;
+ position:relative;
+ scroll-snap-align:start;
+ background:#000;
+ cursor:pointer;
+ box-shadow:0 0 25px rgba(124,246,255,.15);
+ transition:.3s;
+}
+.mediaCard:hover{transform:scale(1.04)}
+.mediaCard video,.mediaCard img{
+ width:100%;
+ height:100%;
+ object-fit:cover;
+}
+.mediaLabel{
+ position:absolute;
+ bottom:0;left:0;right:0;
+ padding:.4rem .6rem;
+ font-size:.75rem;
+ background:linear-gradient(transparent,#000);
+}
+
+.characters{
+ display:flex;
+ gap:1rem;
+ overflow-x:auto;
+}
+.char{
+ min-width:90px;
+ height:90px;
+ border-radius:50%;
+ border:3px solid var(--gold);
+ box-shadow:0 0 15px rgba(255,209,102,.4);
+ cursor:pointer;
+ transition:.3s;
+}
+.char:hover{transform:scale(1.1)}
+
+.tree ul{list-style:none;padding-left:1rem;border-left:1px dashed #333}
+.node{
+ background:none;border:none;
+ color:var(--gold);
+ font-weight:700;
+ cursor:pointer;
+ padding:.25rem 0;
+}
+.node.match{
+ color:var(--blue);
+ text-shadow:0 0 10px var(--blue);
+}
+.branch{
+ max-height:0;
+ overflow:hidden;
+ opacity:0;
+ transition:.4s;
+}
+.branch.open{
+ max-height:500px;
+ opacity:1;
+}
+.hidden{display:none}
+
+.gallery{
+ display:grid;
+ grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+ gap:1rem;
+}
+.gallery img, .gallery video{
+ width:100%;
+ border-radius:16px;
+ cursor:pointer;
+ box-shadow:0 0 15px rgba(0,0,0,.6);
+}
+
+#chronicle{
+ position:fixed;
+ bottom:0;left:0;right:0;
+ background:rgba(5,5,20,.96);
+ border-top:2px solid var(--gold);
+ padding:1rem;
+ font-size:.85rem;
+ display:none;
+ z-index:10;
+}
+
+body.corrupt{
+ animation:shake .12s infinite;
+ filter:contrast(1.3) saturate(1.5) hue-rotate(12deg);
+}
+@keyframes shake{
+ 0%{transform:translate(0)}
+ 25%{transform:translate(2px,-2px)}
+ 50%{transform:translate(-2px,2px)}
+ 75%{transform:translate(2px,2px)}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+ <div class="title">DRAGON<br> BALL</div>
+ <div class="subtitle">Archivo vivo del multiverso</div>
+</header>
+
+<div class="searchBox">
+ <input id="q" placeholder="Buscar personaje, saga o universo…">
+ <select id="filter">
+  <option value="all">Todos</option>
+  <option value="DB">DB</option>
+  <option value="DBZ">DBZ</option>
+  <option value="SUPER">SUPER</option>
+  <option value="GT">GT</option>
+ </select>
+</div>
+
+<div class="section">
+ <h3>SAGAS · SCROLL NARRATIVO</h3>
+ <div class="scrollRow" id="sagas"></div>
+</div>
+
+<div class="section">
+ <h3>PERSONAJES</h3>
+ <div class="characters" id="characters"></div>
+</div>
+
+<div class="section">
+ <h3>ÁRBOL MULTIVERSAL</h3>
+ <div id="tree" class="tree"></div>
+</div>
+
+<div class="section">
+ <h3>GALERÍA</h3>
+ <div id="gallery" class="gallery"></div>
+</div>
+
+<div id="chronicle"></div>
+
+<audio id="glitchSound" loop>
+ <source src="https://assets.mixkit.co/sfx/preview/mixkit-tv-static-1003.mp3">
+</audio>
+
+<script>
+const DB={
+ Goku:{
+  universe:"DBZ",
+  lore:"El cronista observa: Goku es la anomalía que convierte el combate en destino.",
+  avatar:"https://static.wikia.nocookie.net/dragonball/images/8/8a/Goku_UI.png",
+  media:[
+   {type:"video",src:"https://cdn.coverr.co/videos/coverr-energy-burst-1534/1080p.mp4"},
+   {type:"gif",src:"https://media.giphy.com/media/12KDixncjK6l7G/giphy.gif"}
+  ]
+ },
+ Vegeta:{
+  universe:"SUPER",
+  lore:"Orgullo que no se quiebra. El cronista registra resistencia absoluta.",
+  avatar:"https://static.wikia.nocookie.net/dragonball/images/1/19/Vegeta_Super.png",
+  media:[
+   {type:"gif",src:"https://media.giphy.com/media/l0HlG6dGZt2kqk1nG/giphy.gif"}
+  ]
+ },
+ GokuGT:{
+  universe:"GT",
+  lore:"Eco prohibido. Línea temporal inestable detectada.",
+  avatar:"https://static.wikia.nocookie.net/dragonball/images/6/6a/Goku_GT_SSJ4.png",
+  media:[
+   {type:"gif",src:"https://media.giphy.com/media/3o6ZtpxSZbQRRnwCKQ/giphy.gif"}
+  ]
+ }
+};
+
+let lastUniverse=null;
+const chronicle=document.getElementById("chronicle");
+const glitchSound=document.getElementById("glitchSound");
+
+function speak(text){
+ chronicle.textContent="📜 CRONISTA: "+text;
+ chronicle.style.display="block";
+ setTimeout(()=>chronicle.style.display="none",5000);
+}
+
+function corrupt(){
+ document.body.classList.add("corrupt");
+ glitchSound.currentTime=0;
+ glitchSound.play();
+ setTimeout(()=>{
+  document.body.classList.remove("corrupt");
+  glitchSound.pause();
+ },2600);
+}
+
+function activate(entity){
+ if(lastUniverse && lastUniverse!==entity.universe) corrupt();
+ lastUniverse=entity.universe;
+ speak(entity.lore);
+ loadGallery(entity);
+}
+
+Object.values(DB).forEach(e=>{
+ e.media.forEach(m=>{
+  const card=document.createElement("div");
+  card.className="mediaCard";
+  card.onclick=()=>activate(e);
+
+  if(m.type==="video"){
+   const v=document.createElement("video");
+   v.src=m.src;
+   v.muted=true; v.loop=true; v.playsInline=true;
+   card.appendChild(v);
+  }else{
+   const img=document.createElement("img");
+   img.src=m.src;
+   card.appendChild(img);
+  }
+  document.getElementById("sagas").appendChild(card);
+ });
+});
+
+Object.values(DB).forEach(e=>{
+ const img=document.createElement("img");
+ img.className="char";
+ img.src=e.avatar;
+ img.onclick=()=>activate(e);
+ characters.appendChild(img);
+});
+
+const root=document.createElement("ul");
+Object.entries(DB).forEach(([k,e])=>{
+ const li=document.createElement("li");
+ const btn=document.createElement("button");
+ btn.className="node";
+ btn.textContent=k+" · "+e.universe;
+ btn.onclick=()=>{
+  activate(e);
+  branch.classList.toggle("open");
+ };
+ li.appendChild(btn);
+ const branch=document.createElement("ul");
+ branch.className="branch";
+ branch.innerHTML="<li>"+e.lore+"</li>";
+ li.appendChild(branch);
+ root.appendChild(li);
+});
+tree.appendChild(root);
+
+function loadGallery(e){
+ gallery.innerHTML="";
+ e.media.forEach(m=>{
+  let el;
+  if(m.type==="video"){
+   el=document.createElement("video");
+   el.src=m.src;
+   el.muted=true; el.loop=true; el.playsInline=true;
+  }else{
+   el=document.createElement("img");
+   el.src=m.src;
+  }
+  el.onclick=()=>speak(e.lore);
+  gallery.appendChild(el);
+ });
+}
+
+const observer=new IntersectionObserver(entries=>{
+ entries.forEach(ent=>{
+  if(ent.target.tagName==="VIDEO"){
+   ent.isIntersecting?ent.target.play().catch(()=>{}):ent.target.pause();
+  }
+ });
+});
+setTimeout(()=>document.querySelectorAll("video").forEach(v=>observer.observe(v)),500);
+
+q.oninput=filterAll;
+filter.onchange=filterAll;
+function filterAll(){
+ const term=q.value.toLowerCase();
+ const uni=filter.value.toLowerCase();
+ document.querySelectorAll(".node").forEach(n=>{
+  const text=n.textContent.toLowerCase();
+  const okTerm=!term||text.includes(term);
+  const okUni=uni==="all"||text.includes(uni);
+  n.classList.toggle("match",okTerm&&okUni);
+  n.parentElement.classList.toggle("hidden",!(okTerm&&okUni));
+ });
+}
+
+let lastTap=0;
+document.body.addEventListener("touchend",()=>{
+ const now=Date.now();
+ if(now-lastTap<300) corrupt();
+ lastTap=now;
+});
+document.body.addEventListener("dblclick",corrupt);
+
+document.addEventListener("keydown",e=>{
+ if(e.key.toLowerCase()==="s"){
+  const blob=new Blob([document.documentElement.outerHTML],{type:"text/html"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="dragon_ball_archivo_vivo_export.html";
+  a.click();
+ }
+});
+</script>
+
+</body>
+</html>
